@@ -5,10 +5,42 @@ import os
 app = Flask(__name__)
 app.secret_key = "student_management_secret_key"
 
-# This fixes the Render database write error
+# Writable directory for Render
+DB_PATH = os.path.join('/tmp', 'students.db')
+
 def get_connection():
-    db_path = os.path.join('/tmp', 'students.db')
-    return sqlite3.connect(db_path)
+    return sqlite3.connect(DB_PATH)
+
+# AUTOMATICALLY CREATE TABLES IF THEY DO NOT EXIST
+def init_db():
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # Create Users Table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+    )
+    """)
+    
+    # Create Students Table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        name TEXT,
+        rollno TEXT,
+        course TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+    conn.commit()
+    conn.close()
+
+# Run the database initialization immediately when the app loads
+init_db()
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -36,7 +68,6 @@ def register():
         except Exception as e:
 
             conn.close()
-            # Shows the actual database error if something else goes wrong
             return f"Registration failed! Error: {str(e)}"
 
     return render_template("register.html")

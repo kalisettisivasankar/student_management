@@ -1,6 +1,9 @@
+import os
 import sqlite3
 
-conn = sqlite3.connect("students.db")
+# This ensures the database is created in Render's writable directory
+db_path = os.path.join('/tmp', 'students.db')
+conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 # Users table

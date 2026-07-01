@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Management</title>
+</head>
+<body>
+    <h2>Welcome, {{ username }}! | <a href="/logout">Logout</a></h2>
+    <hr>
+
+    <h3>Add Student</h3>
+    <!-- ఇక్కడ enctype="multipart/form-data" పెట్టడం చాలా ముఖ్యం ఫోటోల కోసం -->
+    <form action="/" method="POST" enctype="multipart/form-data">
+        <input type="text" name="name" placeholder="Name" required><br><br>
+        <input type="text" name="rollno" placeholder="Roll No" required><br><br>
+        <input type="text" name="course" placeholder="Branch/Course" required><br><br>
+        <input type="text" name="phone" placeholder="Phone Number"><br><br>
+        <input type="email" name="email" placeholder="Email ID"><br><br>
+        <label>Upload Photo:</label>
+        <input type="file" name="photo" accept="image/*"><br><br>
+        <button type="submit">Add Student</button>
+    </form>
+
+    <hr>
+    <h3>Search Student</h3>
+    <form action="/" method="GET">
+        <input type="text" name="search" placeholder="Search by name or rollno">
+        <button type="submit">Search</button>
+    </form>
+
+    <h3>Student List</h3>
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Photo</th>
+            <th>Name</th>
+            <th>Roll No</th>
+            <th>Branch</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Actions</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>
+                {% if student[7] %}
+                    <img src="/uploads/{{ student[7] }}" width="50" height="50" style="border-radius: 50%; object-fit: cover;">
+                {% else %}
+                    No Photo
+                {% endif %}
+            </td>
+            <td>{{ student[2] }}</td>
+            <td>{{ student[3] }}</td>
+            <td>{{ student[4] }}</td>
+            <td>{{ student[5] or 'N/A' }}</td>
+            <td>{{ student[6] or 'N/A' }}</td>
+            <td>
+                <a href="/edit/{{ student[0] }}">Edit</a> | 
+                <a href="/delete/{{ student[0] }}" onclick="return confirm('Are you sure?')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

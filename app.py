@@ -48,6 +48,9 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Called outside so Gunicorn executes it and creates tables automatically
+init_db()
+
 
 # Route to serve and display uploaded student photos in the browser
 @app.route('/uploads/<filename>')
@@ -111,3 +114,84 @@ def home():
         course = request.form["course"]
         phone = request.form["phone"]
         email = request.form["email"]
+        
+        # Handling file upload logic for student photo
+        file = request.files.get("photo")
+        filename = ""
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        cur.execute(
+            "INSERT INTO students(user_id, name, rollno, course, phone, email, photo) VALUES(?,?,?,?,?,?,?)",
+            (session["user_id"], name, rollno, course, phone, email, filename)
+        )
+        conn.commit()
+
+    search = request.args.get("search")
+    if search:
+        cur.execute(
+            "SELECT * FROM students WHERE user_id=? AND (name LIKE ? OR rollno LIKE ?)",
+            (session["user_id"], "%" + search + "%", "%" + search + "%")
+        )
+    else:
+        cur.execute("SELECT * FROM students WHERE user_id=?", (session["user_id"],))
+
+    students = cur.fetchall()
+    conn.close()
+    return render_template("index.html", students=students, username=session["username"])
+
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    if "user_id" not in session:
+        return redirect("/login")
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM students WHERE id=? AND user_id=?", (id, session["user_id"]))
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
+
+@app.route("/edit/<int:id>", methods=["GET", "POST"])
+def edit(id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        name = request.form["name"]
+        rollno = request.form["rollno"]
+        course = request.form["course"]
+        phone = request.form["phone"]
+        email = request.form["email"]
+        
+        file = request.files.get("photo")
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            cur.execute(
+                "UPDATE students SET name=?, rollno=?, course=?, phone=?, email=?, photo=? WHERE id=? AND user_id=?",
+                (name, rollno, course, phone, email, filename, id, session["user_id"])
+            )
+        else:
+            cur.execute(
+                "UPDATE students SET name=?, rollno=?, course=?, phone=?, email=? WHERE id=? AND user_id=?",
+                (name, rollno, course, phone, email, id, session["user_id"])
+            )
+        conn.commit()
+        conn.close()
+        return redirect("/")
+
+    cur.execute("SELECT * FROM students WHERE id=? AND user_id=?", (id, session["user_id"]))
+    student = cur.fetchone()
+    conn.close()
+    return render_template("edit.html", student=student)
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)

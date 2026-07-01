@@ -5,9 +5,10 @@ import os
 app = Flask(__name__)
 app.secret_key = "student_management_secret_key"
 
-
+# This fixes the Render database write error
 def get_connection():
-    return sqlite3.connect("students.db")
+    db_path = os.path.join('/tmp', 'students.db')
+    return sqlite3.connect(db_path)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -32,11 +33,11 @@ def register():
 
             return redirect("/login")
 
-        except:
+        except Exception as e:
 
             conn.close()
-
-            return "Username already exists!"
+            # Shows the actual database error if something else goes wrong
+            return f"Registration failed! Error: {str(e)}"
 
     return render_template("register.html")
 
@@ -79,6 +80,7 @@ def logout():
     session.clear()
 
     return redirect("/login")
+
 @app.route("/", methods=["GET", "POST"])
 def home():
 
@@ -139,6 +141,7 @@ def home():
         students=students,
         username=session["username"]
     )
+
 # Delete Student
 @app.route("/delete/<int:id>")
 def delete(id):
